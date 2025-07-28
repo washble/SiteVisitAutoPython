@@ -24,7 +24,8 @@ options.add_argument("--incognito")
 options.add_argument("--log-level=3")
 driver = webdriver.Chrome(options=options)
 
-# 2) 스크립트 시작 시 메인 윈도우 핸들 저장
+# 메인 페이지는 스크립트 시작 시 한 번만 로드
+driver.get("https://www.naver.com")
 main_handle = driver.current_window_handle
 
 # 3) 드라이버 동시 접근용 락
@@ -43,7 +44,6 @@ def schedule_tab_close(handle, delay):
                     print(f"[스킵] 이미 닫힌 탭: {handle}")
                     return
 
-                # 해당 탭으로 포커스 후 닫기
                 driver.switch_to.window(handle)
                 driver.close()
                 print(f"[닫힘] {handle}")
@@ -69,9 +69,6 @@ while repeat_forever or iteration < repeat_count:
     # 1) 링크별 새 탭 열기
     for link in link_list:
         with driver_lock:
-            driver.get("https://www.naver.com")
-            time.sleep(2)
-
             before = driver.window_handles.copy()
             driver.execute_script(f'window.open("{link}", "_blank");')
             print(f"[열기] {link}")
