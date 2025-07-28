@@ -29,6 +29,7 @@ def load_config(path="config.json"):
 def setup_driver(startup_url):
     options = Options()
     options.add_experimental_option("detach", True)
+    options.add_argument("--headless")
     options.add_argument("--incognito")
     options.add_argument("--log-level=3")
     driver = webdriver.Chrome(options=options)
