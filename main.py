@@ -5,9 +5,9 @@ import random
 import threading
 
 link_list = [
-    "https://blog.naver.com/washble2/223870890490?no=1",
-    "https://blog.naver.com/washble2/223870890490?no=2",
-    "https://blog.naver.com/washble2/223870890490?no=3",
+    "https://www.naver.com?no=1",
+    "https://www.naver.com?no=2",
+    "https://www.naver.com?no=3",
 ]
 
 interval_seconds   = 10
