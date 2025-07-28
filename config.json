@@ -1,4 +1,5 @@
 {
+  "startup_url": "https://search.naver.com/search.naver",
   "interval_seconds": 10,
   "extra_random_min": 1.0,
   "extra_random_max": 4.0,

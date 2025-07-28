@@ -26,13 +26,13 @@ def load_config(path="config.json"):
         return json.load(f)
 
 # Chrome 드라이버 초기화 함수
-def setup_driver():
+def setup_driver(startup_url):
     options = Options()
     options.add_experimental_option("detach", True)
     options.add_argument("--incognito")
     options.add_argument("--log-level=3")
     driver = webdriver.Chrome(options=options)
-    driver.get("https://www.naver.com")
+    driver.get(startup_url)
     return driver
 
 # 탭 자동 닫기 스케줄링 함수
@@ -103,11 +103,13 @@ def run_loop(cfg, driver, main_handle, driver_lock):
         print(f"[반복 {iteration}] 완료 → {round(total_wait,2)}초 후 재시작")
         time.sleep(total_wait)
 
-# 프로그램 진입점
 if __name__ == "__main__":
     config_path = "config.json"
     cfg = load_config(config_path)
-    driver = setup_driver()
+
+    startup_url = cfg.get("startup_url", "https://www.google.com")
+
+    driver = setup_driver(startup_url)
     main_handle = driver.current_window_handle
     driver_lock = threading.Lock()
 
