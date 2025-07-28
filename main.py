@@ -3,8 +3,20 @@ import os
 import time
 import random
 import threading
+# pip install selenium
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+
+'''
+pip install pyinstaller
+
+[exe build]
+- Just make exe -
+> pyinstaller main.py
+
+- Only One exe File -
+> pyinstaller -F main.py
+'''
 
 # 1) config.json 로드
 config_path = "config.json"
