@@ -6,7 +6,7 @@
   "repeat_count": 5,
   "time_to_close": 15,
   "use_random_selection": true,
-  "selection_min": 5,
+  "selection_min": 1,
   "selection_max": 8,
   "link_list": [
     "https://www.naver.com?no=1",
