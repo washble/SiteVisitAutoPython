@@ -1,0 +1,25 @@
+{
+  "interval_seconds": 10,
+  "extra_random_min": 1.0,
+  "extra_random_max": 4.0,
+  "repeat_forever": true,
+  "repeat_count": 5,
+  "time_to_close": 15,
+  "use_random_selection": true,
+  "selection_min": 5,
+  "selection_max": 8,
+  "link_list": [
+    "https://www.naver.com?no=1",
+    "https://www.naver.com?no=2",
+    "https://www.naver.com?no=3",
+    "https://www.naver.com?no=4",
+    "https://www.naver.com?no=5",
+    "https://www.naver.com?no=6",
+    "https://www.naver.com?no=7",
+    "https://www.naver.com?no=8",
+    "https://www.naver.com?no=9",
+    "https://www.naver.com?no=10",
+    "https://www.naver.com?no=11",
+    "https://www.naver.com?no=12"
+  ]
+}
