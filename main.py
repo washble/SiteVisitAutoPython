@@ -2,68 +2,99 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
 import random
+import threading
 
-# 브라우저 꺼짐 방지 옵션 설정
+link_list = [
+    "https://blog.naver.com/washble2/223870890490?no=1",
+    "https://blog.naver.com/washble2/223870890490?no=2",
+    "https://blog.naver.com/washble2/223870890490?no=3",
+]
+
+interval_seconds   = 10
+extra_random_min   = 1.0
+extra_random_max   = 4.0
+repeat_forever     = True
+repeat_count       = 5
+time_to_close      = 15
+
+# 1) Chrome 옵션 설정
 options = Options()
 options.add_experimental_option("detach", True)
 options.add_argument("--incognito")
 options.add_argument("--log-level=3")
-
-# 크롬 드라이버 실행
 driver = webdriver.Chrome(options=options)
 
-# 블로그 링크 리스트
-link_list = [
-    "https://blog.naver.com/washble2/223870890490",
-    "https://blog.naver.com/washble2/223870890490",
-    "https://blog.naver.com/washble2/223870890490",
-]
+# 2) 스크립트 시작 시 메인 윈도우 핸들 저장
+main_handle = driver.current_window_handle
 
-# 반복 실행 설정
-interval_seconds = 10       # 기본 반복 간격 (초)
-extra_random_min = 1.0      # 랜덤 추가 시간 최소값 (초)
-extra_random_max = 4.0      # 랜덤 추가 시간 최대값 (초)
-repeat_forever = True       # 무한 반복 여부
-repeat_count = 5            # 무한 반복이 아닌 경우 반복 횟수
+# 3) 드라이버 동시 접근용 락
+driver_lock = threading.Lock()
 
-# 반복 시작
+def schedule_tab_close(handle, delay):
+    """
+    handle: 닫을 탭 핸들
+    delay: 열린 후 몇 초 뒤에 닫을지
+    """
+    def close_task():
+        time.sleep(delay)
+        with driver_lock:
+            try:
+                if handle not in driver.window_handles:
+                    print(f"[스킵] 이미 닫힌 탭: {handle}")
+                    return
+
+                # 해당 탭으로 포커스 후 닫기
+                driver.switch_to.window(handle)
+                driver.close()
+                print(f"[닫힘] {handle}")
+
+            except Exception as e:
+                print(f"[오류] 닫기 실패 {handle}: {e}")
+
+    t = threading.Thread(target=close_task, daemon=True)
+    t.start()
+
+
 iteration = 0
 while repeat_forever or iteration < repeat_count:
     iteration += 1
-    print(f"\n[반복 {iteration}] 블로그 링크 열기 시작")
+    print(f"\n[반복 {iteration}] 시작")
 
+    # 반복마다 한 번만 메인 창으로 복귀
+    with driver_lock:
+        driver.switch_to.window(main_handle)
+
+    newly_opened = []
+
+    # 1) 링크별 새 탭 열기
     for link in link_list:
-        try:
+        with driver_lock:
             driver.get("https://www.naver.com")
             time.sleep(2)
 
-            driver.execute_script(f'''window.open("{link}", "_blank");''')
-            print(f"[성공] 주소창 입력처럼 {link} 새 창으로 열기 완료")
+            before = driver.window_handles.copy()
+            driver.execute_script(f'window.open("{link}", "_blank");')
+            print(f"[열기] {link}")
             time.sleep(2)
 
-        except Exception as e:
-            print(f"[오류] {link} 접속 중 문제가 발생했습니다:", e)
+            after = driver.window_handles
+            new_tabs = [h for h in after if h not in before]
+            newly_opened.extend(new_tabs)
 
-    # 랜덤 대기 시간 계산
-    random_delay = random.uniform(extra_random_min, extra_random_max)
-    total_wait = interval_seconds + random_delay
-    if total_wait >= 3600:
-        hrs = int(total_wait // 3600)
-        mins = int((total_wait % 3600) // 60)
-        secs = round(total_wait % 60, 2)
-        print(f"[반복 {iteration}] 완료. 총 {hrs}시간 {mins}분 {secs}초 후 다시 시작합니다.")
-    elif total_wait >= 60:
-        mins = int(total_wait // 60)
-        secs = round(total_wait % 60, 2)
-        print(f"[반복 {iteration}] 완료. 총 {mins}분 {secs}초 후 다시 시작합니다.")
-    else:
-        print(f"[반복 {iteration}] 완료. 총 {round(total_wait, 2)}초 후 다시 시작합니다.")
+    # 2) 열린 순서대로 닫기 예약
+    for idx, handle in enumerate(newly_opened):
+        schedule_tab_close(handle, time_to_close + idx * 0.1)
+
+    # 3) 다음 반복 전 랜덤 대기
+    extra = random.uniform(extra_random_min, extra_random_max)
+    total_wait = interval_seconds + extra
+    print(f"[반복 {iteration}] 완료 → {round(total_wait,2)}초 후 재시작")
     time.sleep(total_wait)
 
-# 브라우저 유지 루프
+# 스크립트 종료 후에도 브라우저 유지
 try:
-    print("\n모든 반복 작업 완료. 브라우저는 계속 열려 있습니다. 종료하려면 Ctrl+C를 누르세요.")
+    print("모든 반복 완료. Ctrl+C로 종료하세요.")
     while True:
         time.sleep(1)
 except KeyboardInterrupt:
-    print("\n[사용자 종료] 스크립트를 종료합니다.")
+    print("사용자 종료, 스크립트를 마칩니다.")
