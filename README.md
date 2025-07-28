@@ -41,3 +41,10 @@
 ```bash
 pip install selenium
 pip install pyinstaller
+```
+
+#### Generating user_agents.json
+최신 Chrome User-Agent 목록을 수집하려면 generate_user_agents_json.py 스크립트를 실행하세요.
+스크립트 실행 후 프로젝트 루트에 user_agents.json 파일이 생성됩니다.
+
+python generate_user_agents_json.py

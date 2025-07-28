@@ -18,6 +18,47 @@ from selenium.webdriver.chrome.options import Options
 > pyinstaller -F main.py
 '''
 
+# 사용된 user-agent 기록용 집합
+used_agents = set()
+# user_agents.json을 한 번만 로드해 둘 전역 변수
+user_agents_list = None
+
+# user_agents.json 로드 및 관리 함수
+def get_random_user_agent(path="user_agents.json"):
+    global user_agents_list
+
+    # 최초 호출 시에만 파일 로드
+    if user_agents_list is None:
+        if not os.path.exists(path):
+            print("[경고] user_agents.json 파일을 찾을 수 없습니다. 기본 user-agent를 사용합니다.")
+            user_agents_list = []
+        else:
+            with open(path, "r", encoding="utf-8") as f:
+                try:
+                    data = json.load(f)
+                    if not isinstance(data, list):
+                        raise ValueError
+                    user_agents_list = data
+                except Exception:
+                    print("[경고] user_agents.json 파싱 실패 또는 형식 오류. 기본 user-agent를 사용합니다.")
+                    user_agents_list = []
+
+    # 리스트가 비어 있으면 기본 user-agent 사용
+    if not user_agents_list:
+        return None
+
+    # 사용하지 않은 agent 목록으로 필터링
+    available_agents = [ua for ua in user_agents_list if ua not in used_agents]
+    if not available_agents:
+        # 모두 썼다면 초기화
+        used_agents.clear()
+        available_agents = user_agents_list.copy()
+        print("[초기화] 모든 user-agent를 사용했으므로 목록을 초기화합니다.")
+
+    selected = random.choice(available_agents)
+    used_agents.add(selected)
+    return selected
+
 # config.json 로드 함수
 def load_config(path="config.json"):
     if not os.path.exists(path):
@@ -70,6 +111,20 @@ def run_loop(cfg, driver, main_handle, driver_lock):
     while repeat_forever or iteration < repeat_count:
         iteration += 1
         print(f"\n[반복 {iteration}] 시작")
+
+        # 매 반복마다 user-agent 변경
+        ua = get_random_user_agent()
+        if ua:
+            try:
+                driver.execute_cdp_cmd(
+                    "Network.setUserAgentOverride",
+                    {"userAgent": ua}
+                )
+                print(f"[USER-AGENT 적용] {ua}")
+            except Exception:
+                print("[경고] CDP로 user-agent 적용 실패, 기본 user-agent 유지")
+        else:
+            print("[USER-AGENT 적용] 기본 user-agent 사용")
 
         with driver_lock:
             driver.switch_to.window(main_handle)
