@@ -8,8 +8,18 @@ link_list = [
     "https://www.naver.com?no=1",
     "https://www.naver.com?no=2",
     "https://www.naver.com?no=3",
+    "https://www.naver.com?no=4",
+    "https://www.naver.com?no=5",
+    "https://www.naver.com?no=6",
+    "https://www.naver.com?no=7",
+    "https://www.naver.com?no=8",
+    "https://www.naver.com?no=9",
+    "https://www.naver.com?no=10",
+    "https://www.naver.com?no=11",
+    "https://www.naver.com?no=12",
 ]
 
+# 반복 설정
 interval_seconds   = 10
 extra_random_min   = 1.0
 extra_random_max   = 4.0
@@ -17,7 +27,12 @@ repeat_forever     = True
 repeat_count       = 5
 time_to_close      = 15
 
-# 1) Chrome 옵션 설정
+use_random_selection = True
+# 최소·최대 개수 지정 (min은 0 미만 불가, max는 리스트 길이 초과 불가)
+selection_min   = 1
+selection_max   = 8
+
+# Chrome 옵션 설정
 options = Options()
 options.add_experimental_option("detach", True)
 options.add_argument("--incognito")
@@ -28,7 +43,7 @@ driver = webdriver.Chrome(options=options)
 driver.get("https://www.naver.com")
 main_handle = driver.current_window_handle
 
-# 3) 드라이버 동시 접근용 락
+# 드라이버 동시 접근용 락
 driver_lock = threading.Lock()
 
 def schedule_tab_close(handle, delay):
@@ -54,7 +69,6 @@ def schedule_tab_close(handle, delay):
     t = threading.Thread(target=close_task, daemon=True)
     t.start()
 
-
 iteration = 0
 while repeat_forever or iteration < repeat_count:
     iteration += 1
@@ -64,15 +78,28 @@ while repeat_forever or iteration < repeat_count:
     with driver_lock:
         driver.switch_to.window(main_handle)
 
-    newly_opened = []
+    # 링크 선택
+    if use_random_selection:
+        # 안전장치: min_open은 0 이상, max_open은 리스트 길이 이하
+        min_open = max(selection_min, 0)
+        max_open = min(selection_max, len(link_list))
+        if min_open > max_open:
+            min_open = max_open
 
-    # 1) 링크별 새 탭 열기
-    for link in link_list:
+        num_to_open = random.randint(min_open, max_open)
+        selected_links = random.sample(link_list, num_to_open)
+        print(f"[선택] 랜덤 사용: 열 링크 {num_to_open}개 →", selected_links)
+    else:
+        selected_links = link_list.copy()
+        print(f"[선택] 랜덤 사용 안 함: 전체 링크 열기 →", selected_links)
+
+    newly_opened = []
+    # 1) 선택된 링크만 새 탭 열기
+    for link in selected_links:
         with driver_lock:
             before = driver.window_handles.copy()
             driver.execute_script(f'window.open("{link}", "_blank");')
             print(f"[열기] {link}")
-            time.sleep(2)
 
             after = driver.window_handles
             new_tabs = [h for h in after if h not in before]
