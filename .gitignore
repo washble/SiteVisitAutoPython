@@ -3,3 +3,5 @@ build
 dist
 *.png
 main.spec
+main_scroll.spec
+main_youtube.spec
