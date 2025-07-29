@@ -6,6 +6,7 @@ import threading
 # pip install selenium
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
 
 # pip install pyinstaller
 
@@ -149,8 +150,6 @@ def run_loop(cfg, driver, main_handle, driver_lock):
                 driver.execute_script(f'window.open("{link}", "_blank");')
                 print(f"[열기] {link}")
 
-            time.sleep(5)
-
             with driver_lock:
                 after = driver.window_handles
                 new_tabs = [h for h in after if h not in before]
@@ -160,29 +159,33 @@ def run_loop(cfg, driver, main_handle, driver_lock):
 
                 handle = new_tabs[0]
                 driver.switch_to.window(handle)
+                
+                # 새 탭 전환 후, 문서와 모든 리소스가 완전히 로드될 때까지 대기
+                WebDriverWait(driver, 10).until(
+                    lambda d: d.execute_script("return document.readyState") == "complete"
+                )
 
-                # NOTE: 사이트에 자동재생이 동작하지 않을 경우 아래 블록의 주석을 해제하세요
-                # driver.execute_script("""
-                #     const videos = document.querySelectorAll('video');
-                #     videos.forEach(v=>{
-                #         v.muted = true;
-                #         v.play().catch(()=>{});
-                #     });
+                driver.execute_script("""
+                    const videos = document.querySelectorAll('video');
+                    videos.forEach(v=>{
+                        v.muted = true;
+                        v.play().catch(()=>{});
+                    });
 
-                #     const iframes = document.querySelectorAll('iframe');
-                #     iframes.forEach(iframe=>{
-                #         try {
-                #             const innerVideos = iframe.contentDocument.querySelectorAll('video');
-                #             innerVideos.forEach(v=>{
-                #                 v.muted = true;
-                #                 v.play().catch(()=>{});
-                #             });
-                #         } catch(e){
-                #             console.log('[iframe 접근 실패] cross-origin');
-                #         }
-                #     });
-                # """)
-                # print(f"[재생 시도] {handle}")
+                    const iframes = document.querySelectorAll('iframe');
+                    iframes.forEach(iframe=>{
+                        try {
+                            const innerVideos = iframe.contentDocument.querySelectorAll('video');
+                            innerVideos.forEach(v=>{
+                                v.muted = true;
+                                v.play().catch(()=>{});
+                            });
+                        } catch(e){
+                            console.log('[iframe 접근 실패] cross-origin');
+                        }
+                    });
+                """)
+                print(f"[재생 시도] {handle}")
 
             newly_opened.append(handle)
             schedule_tab_close(handle, time_to_close + idx * 0.1, driver, driver_lock)
