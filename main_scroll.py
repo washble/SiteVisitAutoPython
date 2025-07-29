@@ -6,6 +6,7 @@ import threading
 # pip install selenium
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 
 # pip install pyinstaller
 
@@ -157,8 +158,15 @@ def run_loop(cfg, driver, main_handle, driver_lock):
                 handle = new_tabs[0]
                 driver.switch_to.window(handle)
 
-                # 새 탭이 열리면 맨 아래로 스크롤
-                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                # 새 탭이 열리면 맨 아래로 스크롤 (iframe 있으면 내부에서, 없으면 문서에서)
+                iframes = driver.find_elements(By.TAG_NAME, "iframe")
+                if iframes:
+                    driver.switch_to.frame(iframes[0])
+                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                    driver.switch_to.default_content()
+                else:
+                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
                 print(f"[스크롤 완료] {handle}")
 
             newly_opened.append(handle)
