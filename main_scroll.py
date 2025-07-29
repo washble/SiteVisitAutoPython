@@ -7,6 +7,8 @@ import threading
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # pip install pyinstaller
 
@@ -146,8 +148,6 @@ def run_loop(cfg, driver, main_handle, driver_lock):
                 driver.execute_script(f'window.open("{link}", "_blank");')
                 print(f"[열기] {link}")
 
-            time.sleep(3)
-
             with driver_lock:
                 after = driver.window_handles
                 new_tabs = [h for h in after if h not in before]
@@ -158,13 +158,20 @@ def run_loop(cfg, driver, main_handle, driver_lock):
                 handle = new_tabs[0]
                 driver.switch_to.window(handle)
 
+                # 새 탭 전환 후, body 태그 로딩 대기
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "body"))
+                )
+
                 # 새 탭이 열리면 맨 아래로 스크롤 (iframe 있으면 내부에서, 없으면 문서에서)
                 iframes = driver.find_elements(By.TAG_NAME, "iframe")
                 if iframes:
+                    # 첫 번째 iframe 내부로 들어가서 스크롤
                     driver.switch_to.frame(iframes[0])
                     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                     driver.switch_to.default_content()
                 else:
+                    # iframe 없으면 문서 전체에서 스크롤
                     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
                 print(f"[스크롤 완료] {handle}")
