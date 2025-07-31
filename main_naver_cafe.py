@@ -99,8 +99,21 @@ def login_to_naver(driver, naver_id, naver_pw):
     # 로그인 버튼 클릭
     login_btn = driver.find_element(By.CLASS_NAME, "btn_login")
     login_btn.click()
-    print("[네이버 로그인] 완료")
     time.sleep(3)  # 로그인 처리 안정화 대기
+    
+    def is_logged_in(driver):
+        cookie_ok = any(c['name'] == 'NID_AUT' for c in driver.get_cookies())
+        current_url = driver.current_url
+        url_ok = current_url.startswith("https://www.naver.com")
+        return cookie_ok, url_ok, current_url
+
+    # 로그인 확인 후 출력
+    cookie_ok, url_ok, current_url = is_logged_in(driver)
+
+    if cookie_ok and url_ok:
+        print(f"로그인 완료. 쿠키: {'유효' if cookie_ok else '없음'}, 현재 URL: {current_url}")
+    else:
+        print(f"로그인 실패. 쿠키: {'유효' if cookie_ok else '없음'}, 현재 URL: {current_url}")
     
 def find_chrome_exe(paths):
     for path in paths:
