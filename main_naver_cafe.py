@@ -117,8 +117,17 @@ def init_driver(use_headless=False):
     chrome_path = find_chrome_exe(paths_to_search)
     if chrome_path:
         try:
-            subprocess.Popen(fr'{chrome_path} --remote-debugging-port=19440 '
-                            r' --user-data-dir="C:\chromeTemp32"')
+            # 옵션들을 함께 넘겨줘야 디버깅용 Chrome도 headless 실행됩니다
+            cmd = (
+                fr'{chrome_path} --remote-debugging-port=19440 '
+                '--user-data-dir="C:\\chromeTemp32" '
+                '--log-level=3 '
+                '--mute-audio '
+                '--disable-popup-blocking '
+            )
+            if use_headless:
+                cmd += "--headless --disable-gpu "
+            subprocess.Popen(cmd)
         except FileNotFoundError:
             print(f"[오류] Chrome 실행 실패: {e}")
     else:
@@ -126,9 +135,7 @@ def init_driver(use_headless=False):
 
     try:
         service = ChromeService(ChromeDriverManager().install())
-        options = setup_driver_option()
-        if(use_headless):
-            options.add_argument("--headless")
+        options = setup_driver_option(use_headless)
         driver = webdriver.Chrome(service=service, options=options)
         driver.implicitly_wait(3)
         print("WebDriver 초기화 성공")
@@ -140,7 +147,9 @@ def init_driver(use_headless=False):
 def setup_driver_option(use_headless=False):
     options = webdriver.ChromeOptions()
     options.add_experimental_option("debuggerAddress", f"127.0.0.1:19440")
-    # options.add_argument("--headless")
+    if use_headless:
+        options.add_argument("--headless")
+        options.add_argument("--disable-gpu")
     # options.add_argument("--incognito")
     options.add_argument("--log-level=3")
     options.add_argument("--mute-audio")
