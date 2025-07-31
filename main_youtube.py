@@ -3,11 +3,15 @@ import os
 import time
 import random
 import threading
-# pip install selenium
+import subprocess
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.common.exceptions import WebDriverException
+from webdriver_manager.chrome import ChromeDriverManager
 
+# pip install selenium
 # pip install pyinstaller
 
 '''
@@ -67,17 +71,63 @@ def load_config(path="config.json"):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-# Chrome 드라이버 초기화 함수
-def setup_driver(startup_url):
-    options = Options()
-    options.add_experimental_option("detach", True)
-    # options.add_argument("--headless")
-    options.add_argument("--incognito")
+def find_chrome_exe(paths):
+    for path in paths:
+        for root, dirs, files in os.walk(path):
+            if 'chrome.exe' in files:
+                return os.path.join(root, 'chrome.exe')
+    return None
+
+def setup_driver_option(use_headless=False):
+    options = webdriver.ChromeOptions()
+    options.add_experimental_option("debuggerAddress", f"127.0.0.1:19440")
+    if use_headless:
+        options.add_argument("--headless")
+        options.add_argument("--disable-gpu")
+    # options.add_argument("--incognito")
     options.add_argument("--log-level=3")
     options.add_argument("--mute-audio")
-    driver = webdriver.Chrome(options=options)
-    driver.get(startup_url)
-    return driver
+    options.add_argument("--disable-popup-blocking")
+    return options
+
+def init_driver(use_headless=False):
+    # 1) 로컬에 설치된 chrome.exe 경로 탐색
+    paths_to_search = [
+        'C:\\Program Files\\Google\\Chrome\\Application',
+        'C:\\Program Files (x86)\\Google\\Chrome\\Application'
+    ]
+    chrome_path = find_chrome_exe(paths_to_search)
+    if chrome_path:
+        try:
+            # 2) subprocess에 리스트 형태로 인자 전달
+            cmd = [
+                chrome_path,
+                "--remote-debugging-port=19440",
+                "--user-data-dir=C:\\chromeTemp32",
+                "--log-level=3",
+                "--mute-audio",
+                "--disable-popup-blocking",
+            ]
+            if use_headless:
+                cmd += ["--headless", "--disable-gpu"]
+            subprocess.Popen(cmd, shell=False)
+            print("[Chrome 실행] 디버깅 모드로 Chrome을 시작했습니다.")
+        except FileNotFoundError as e:
+            print(f"[오류] Chrome 실행 실패: {e}")
+    else:
+        print("[에러] chrome.exe 경로를 찾지 못했습니다.")
+
+    # 3) WebDriver 연결
+    try:
+        service = ChromeService(ChromeDriverManager().install())
+        options = setup_driver_option(use_headless)
+        driver = webdriver.Chrome(service=service, options=options)
+        driver.implicitly_wait(3)
+        print("WebDriver 초기화 성공")
+        return driver
+    except WebDriverException as e:
+        print(f"[오류] WebDriver 초기화 실패: {e}")
+        return None
 
 # 탭 자동 닫기 스케줄링 함수
 def schedule_tab_close(handle, delay, driver, driver_lock):
@@ -204,10 +254,10 @@ def run_loop(cfg, driver, main_handle, driver_lock):
 if __name__ == "__main__":
     config_path = "config.json"
     cfg = load_config(config_path)
-
     startup_url = cfg.get("startup_url", "https://www.google.com")
 
-    driver = setup_driver(startup_url)
+    driver = init_driver(False)
+    driver.get(startup_url)
     main_handle = driver.current_window_handle
     driver_lock = threading.Lock()
 
