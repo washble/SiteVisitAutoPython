@@ -71,7 +71,7 @@ def load_config(path="config.json"):
 def setup_driver(startup_url):
     options = Options()
     options.add_experimental_option("detach", True)
-    options.add_argument("--headless")
+    # options.add_argument("--headless")
     options.add_argument("--incognito")
     options.add_argument("--log-level=3")
     options.add_argument("--mute-audio")
@@ -165,11 +165,14 @@ def run_loop(cfg, driver, main_handle, driver_lock):
                     lambda d: d.execute_script("return document.readyState") == "complete"
                 )
 
+                time.sleep(1.5)
                 driver.execute_script("""
                     const videos = document.querySelectorAll('video');
                     videos.forEach(v=>{
-                        v.muted = true;
-                        v.play().catch(()=>{});
+                        if (v.paused) {
+                            v.muted = true;
+                            v.play().catch(()=>{});
+                        }
                     });
 
                     const iframes = document.querySelectorAll('iframe');
@@ -177,8 +180,10 @@ def run_loop(cfg, driver, main_handle, driver_lock):
                         try {
                             const innerVideos = iframe.contentDocument.querySelectorAll('video');
                             innerVideos.forEach(v=>{
-                                v.muted = true;
-                                v.play().catch(()=>{});
+                                if (v.paused) {
+                                    v.muted = true;
+                                    v.play().catch(()=>{});
+                                }
                             });
                         } catch(e){
                             console.log('[iframe 접근 실패] cross-origin');
@@ -186,6 +191,7 @@ def run_loop(cfg, driver, main_handle, driver_lock):
                     });
                 """)
                 print(f"[재생 시도] {handle}")
+                time.sleep(2)
 
             newly_opened.append(handle)
             schedule_tab_close(handle, time_to_close + idx * 0.1, driver, driver_lock)
