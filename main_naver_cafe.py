@@ -3,22 +3,15 @@ import os
 import time
 import random
 import threading
-import subprocess
-import pyperclip
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.common.exceptions import WebDriverException
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
 # pip install pyinstaller
 # pip install selenium
-# pip install pyperclip
 
 '''
 [exe build]
@@ -69,38 +62,28 @@ def load_config(path="config.json"):
 
 def login_to_naver(driver, naver_id, naver_pw):
     # 네이버 로그인 페이지로 이동
-    driver.get("https://www.naver.com")
-    time.sleep(3)
     try:
         driver.find_element(By.CLASS_NAME, 'MyView-module__link_login___HpHMW').click()
         time.sleep(3)
     except Exception:
         print("[경고] 로그인 버튼을 찾지 못했습니다")
     
-    # ID 입력 (pyperclip 사용)
-    id_field = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.ID, "id"))
+    # headless 모드에서는 클립보드 사용이 불가 => JS로 직접 input value를 설정합니다.
+    driver.execute_script(
+        f"document.querySelector('input#id').setAttribute('value', '{naver_id}');"
     )
-    id_field.clear()
-    pyperclip.copy(naver_id)
-    id_field.send_keys(Keys.CONTROL, 'v')
     time.sleep(0.5)
-
-    # PW 입력 (pyperclip 사용)
-    pw_field = driver.find_element(By.ID, "pw")
-    pw_field.clear()
-    pyperclip.copy(naver_pw)
-    pw_field.send_keys(Keys.CONTROL, 'v')
+    driver.execute_script(
+        f"document.querySelector('input#pw').setAttribute('value', '{naver_pw}');"
+    )
     time.sleep(0.5)
-
-    # 보안을 위해 클립보드 비우기
-    pyperclip.copy('')
 
     # 로그인 버튼 클릭
     login_btn = driver.find_element(By.CLASS_NAME, "btn_login")
     login_btn.click()
     time.sleep(3)  # 로그인 처리 안정화 대기
     
+    # 로그인 확인을 위한 인증쿠키와 현재 URL체크(로그인 성공 시 네이버 창으로 redirect됨)
     def is_logged_in(driver):
         cookie_ok = any(c['name'] == 'NID_AUT' for c in driver.get_cookies())
         current_url = driver.current_url
@@ -115,59 +98,17 @@ def login_to_naver(driver, naver_id, naver_pw):
     else:
         print(f"로그인 실패. 쿠키: {'유효' if cookie_ok else '없음'}, 현재 URL: {current_url}")
     
-def find_chrome_exe(paths):
-    for path in paths:
-        for root, dirs, files in os.walk(path):
-            if 'chrome.exe' in files:
-                return os.path.join(root, 'chrome.exe')
-    return None
-
-def init_driver(use_headless=False):
-    paths_to_search = [
-        'C:\\Program Files\\Google\\Chrome\\Application',
-        'C:\\Program Files (x86)\\Google\\Chrome\\Application'
-    ]
-    chrome_path = find_chrome_exe(paths_to_search)
-    if chrome_path:
-        try:
-            # 옵션들을 함께 넘겨줘야 디버깅용 Chrome도 headless 실행됩니다
-            cmd = (
-                fr'{chrome_path} --remote-debugging-port=19440 '
-                '--user-data-dir="C:\\chromeTemp32" '
-                '--log-level=3 '
-                '--mute-audio '
-                '--disable-popup-blocking '
-            )
-            if use_headless:
-                cmd += "--headless --disable-gpu "
-            subprocess.Popen(cmd)
-        except FileNotFoundError:
-            print(f"[오류] Chrome 실행 실패: {e}")
-    else:
-        print("[에러] chrome.exe 경로를 찾지 못했습니다.")
-
-    try:
-        service = ChromeService(ChromeDriverManager().install())
-        options = setup_driver_option(use_headless)
-        driver = webdriver.Chrome(service=service, options=options)
-        driver.implicitly_wait(3)
-        print("WebDriver 초기화 성공")
-        return driver
-    except WebDriverException as e:
-        print(f"WebDriver 초기화 실패: {e}")
-        return None
-
-def setup_driver_option(use_headless=False):
-    options = webdriver.ChromeOptions()
-    options.add_experimental_option("debuggerAddress", f"127.0.0.1:19440")
+def setup_driver(startup_url, use_headless):
+    options = Options()
+    options.add_experimental_option("detach", True)
     if use_headless:
         options.add_argument("--headless")
-        options.add_argument("--disable-gpu")
-    # options.add_argument("--incognito")
+    options.add_argument("--incognito")
     options.add_argument("--log-level=3")
     options.add_argument("--mute-audio")
-    options.add_argument("--disable-popup-blocking")
-    return options
+    driver = webdriver.Chrome(options=options)
+    driver.get(startup_url)
+    return driver
 
 def schedule_tab_close(handle, delay, driver, driver_lock):
     def close_task():
@@ -287,8 +228,9 @@ if __name__ == "__main__":
         raise ValueError("config.json에 'naver_id'와 'naver_pw'를 입력해주세요")
 
     # 드라이버 초기화 (startup URL 고정: 네이버)
+    startup_url = cfg.get("startup_url", "https://www.naver.com")
     use_headless = cfg.get("use_headless", False)
-    driver = init_driver(use_headless=use_headless)
+    driver = setup_driver(startup_url, use_headless)
     main_handle = driver.current_window_handle
     driver_lock = threading.Lock()
 
