@@ -1,0 +1,19 @@
+{
+  "naver_id": "user_id",
+  "naver_pw": "user_pw",
+  "use_headless": false,
+  "interval_seconds": 1800,
+  "extra_random_min": 0,
+  "extra_random_max": 60,
+  "repeat_forever": true,
+  "repeat_count": 5,
+  "time_to_close": 3,
+  "use_random_selection": false,
+  "selection_min": 1,
+  "selection_max": 2,
+  "link_list": [
+"https://cafe.naver.com/cafe_name1",
+"https://cafe.naver.com/cafe_name2",
+"https://cafe.naver.com/cafe_name3"
+  ]
+}
