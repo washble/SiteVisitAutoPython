@@ -85,7 +85,7 @@ def setup_driver_option(use_headless=False):
     if use_headless:
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
-    # options.add_argument("--incognito")
+    options.add_argument("--incognito")
     options.add_argument("--log-level=3")
     options.add_argument("--mute-audio")
     options.add_argument("--disable-popup-blocking")
@@ -105,6 +105,7 @@ def init_driver(use_headless=False):
                 chrome_path,
                 "--remote-debugging-port=19440",
                 "--user-data-dir=C:\\chromeTemp32",
+                "--incognito",
                 "--log-level=3",
                 "--mute-audio",
                 "--disable-popup-blocking",
@@ -257,7 +258,7 @@ if __name__ == "__main__":
     cfg = load_config(config_path)
     startup_url = cfg.get("startup_url", "https://www.google.com")
 
-    driver = init_driver(False)
+    driver = init_driver(True)
     driver.get(startup_url)
     main_handle = driver.current_window_handle
     driver_lock = threading.Lock()
