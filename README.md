@@ -41,6 +41,7 @@
 ```bash
 pip install selenium
 pip install pyinstaller
+pip install webdriver-manager
 ```
 
 #### Generating user_agents.json
