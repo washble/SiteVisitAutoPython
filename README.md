@@ -49,3 +49,18 @@ pip install webdriver-manager
 스크립트 실행 후 프로젝트 루트에 user_agents.json 파일이 생성됩니다.
 
 python generate_user_agents_json.py
+
+#### To run multiple Chrome instances in debugging mode
+각 인스턴스마다 포트 번호와 user-data-dir 경로를 다르게 설정해야 합니다.
+예)
+1. options.add_experimental_option("debuggerAddress", f"127.0.0.1:19440")
+2. 
+cmd = [
+    chrome_path,
+    "--remote-debugging-port=19440",
+    "--user-data-dir=C:\\chromeTemp32",
+    "--incognito",
+    "--log-level=3",
+    "--mute-audio",
+    "--disable-popup-blocking",
+]
