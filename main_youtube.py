@@ -5,7 +5,6 @@ import random
 import threading
 import subprocess
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.common.exceptions import WebDriverException
@@ -79,9 +78,9 @@ def find_chrome_exe(paths):
                 return os.path.join(root, 'chrome.exe')
     return None
 
-def setup_driver_option(use_headless=False):
+def setup_driver_option(use_headless=False, debug_port=19440):
     options = webdriver.ChromeOptions()
-    options.add_experimental_option("debuggerAddress", f"127.0.0.1:19440")
+    options.add_experimental_option("debuggerAddress", f"127.0.0.1:{debug_port}")
     if use_headless:
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
@@ -91,7 +90,7 @@ def setup_driver_option(use_headless=False):
     options.add_argument("--disable-popup-blocking")
     return options
 
-def init_driver(use_headless=False):
+def init_driver(use_headless=False, debug_port=19440):
     # 1) 로컬에 설치된 chrome.exe 경로 탐색
     paths_to_search = [
         'C:\\Program Files\\Google\\Chrome\\Application',
@@ -103,8 +102,8 @@ def init_driver(use_headless=False):
             # 2) subprocess에 리스트 형태로 인자 전달
             cmd = [
                 chrome_path,
-                "--remote-debugging-port=19440",
-                "--user-data-dir=C:\\chromeTemp32",
+                f"--remote-debugging-port={debug_port}",
+                f"--user-data-dir=C:\\chromeTemp{debug_port}",
                 "--incognito",
                 "--log-level=3",
                 "--mute-audio",
@@ -122,7 +121,7 @@ def init_driver(use_headless=False):
     # 3) WebDriver 연결
     try:
         service = ChromeService(ChromeDriverManager().install())
-        options = setup_driver_option(use_headless)
+        options = setup_driver_option(use_headless, debug_port)
         driver = webdriver.Chrome(service=service, options=options)
         driver.implicitly_wait(3)
         print("WebDriver 초기화 성공")
@@ -254,11 +253,12 @@ def run_loop(cfg, driver, main_handle, driver_lock):
         time.sleep(total_wait)
 
 if __name__ == "__main__":
-    config_path = "config.json"
+    config_path = "youtube_config.json"
     cfg = load_config(config_path)
     startup_url = cfg.get("startup_url", "https://www.google.com")
-
-    driver = init_driver(True)
+    debug_port   = cfg.get("port", 19440)
+    
+    driver = init_driver(True, debug_port)
     driver.get(startup_url)
     main_handle = driver.current_window_handle
     driver_lock = threading.Lock()

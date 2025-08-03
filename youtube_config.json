@@ -1,0 +1,21 @@
+{
+  "startup_url": "https://www.youtube.com/",
+  "port": 19440,
+  "interval_seconds": 100,
+  "extra_random_min": 0,
+  "extra_random_max": 900,
+  "repeat_forever": true,
+  "repeat_count": 5,
+  "time_to_close": 900,
+  "use_random_selection": true,
+  "selection_min": 1,
+  "selection_max": 2,
+  "link_list": [
+"https://www.youtube.com/watch?v=1",
+"https://www.youtube.com/watch?v=2",
+"https://www.youtube.com/watch?v=3",
+"https://www.youtube.com/watch?v=4",
+"https://www.youtube.com/watch?v=5",
+"https://www.youtube.com/watch?v=6"
+  ]
+}
